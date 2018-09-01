@@ -35,7 +35,10 @@ import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.example.fireeats.adapter.RestaurantAdapter;
+import com.google.firebase.example.fireeats.model.Restaurant;
+import com.google.firebase.example.fireeats.util.RestaurantUtil;
 import com.google.firebase.example.fireeats.viewmodel.MainActivityViewModel;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -102,7 +105,11 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void initFirestore() {
-        // TODO(developer): Implement
+        mFirestore = FirebaseFirestore.getInstance();
+
+        mQuery =  mFirestore.collection("restaurants")
+                .orderBy("avgRating" , Query.Direction.DESCENDING)
+                .limit(LIMIT);
     }
 
     private void initRecyclerView() {
@@ -164,14 +171,38 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void onAddItemsClicked() {
-        // TODO(developer): Add random restaurants
-        showTodoToast();
+        CollectionReference restaurants = mFirestore.collection("restaurants");
+
+        for (int i = 0; i < 10; i++) {
+            Restaurant restaurant = RestaurantUtil.getRandom(this);
+            restaurants.add(restaurant);
+        }
     }
 
     @Override
     public void onFilter(Filters filters) {
-        // TODO(developer): Construct new query
-        showTodoToast();
+
+        Query query = mFirestore.collection("restaurants");
+
+        if (filters.hasCategory()){
+            query = query.whereEqualTo("category" , filters.getCategory());
+        }
+
+        if (filters.hasCity()){
+            query = query.whereEqualTo("city" , filters.getCity());
+        }
+
+        if (filters.hasPrice()){
+            query = query.whereEqualTo("price" , filters.getPrice());
+        }
+
+        if (filters.hasSortBy()){
+            query = query.orderBy(filters.getSortBy() , filters.getSortDirection());
+        }
+
+        query = query.limit(LIMIT);
+        mQuery = query;
+        mAdapter.setQuery(query);
 
         // Set header
         mCurrentSearchView.setText(Html.fromHtml(filters.getSearchDescription(this)));
